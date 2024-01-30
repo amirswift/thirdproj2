@@ -217,9 +217,76 @@ def acceptable_forward_prune(sudoku_table, val, cell):
     return True
 
 
-# print("Sudoku cages:")
-# for cage in sudoku_cages:
-#     print(cage)
+def solve_by_lcv_mrv(sudoku_table):
+    empty_cell = minimum_remaining_value()
 
-print(backtracking_and_prune(sudoku_table))
+    if not empty_cell:
+        return True
+
+    lcv_list = []
+    for i in empty_cell.possible_values:
+        lcv_list.append((i, least_constraining_values(sudoku_table, i, empty_cell)))
+
+    lcv_list = sort_tuples_by_second_element(lcv_list)
+
+    for val in lcv_list:
+        val = int(val[0])
+        sudoku_table[empty_cell.x][empty_cell.y].value = val
+        if backtracking_and_prune(sudoku_table):
+            return True
+        sudoku_table[empty_cell.x][empty_cell.y].value = 0
+
+    return False
+
+
+def sort_tuples_by_second_element(tuples_list):
+    return sorted(tuples_list, key=lambda x: x[1])
+
+
+def minimum_remaining_value():
+    mrv = float("inf")
+    for row in sudoku_table:
+        for cell in row:
+            if len(cell.possible_values) < mrv and cell.value == 0:
+                mrv = len(cell.possible_values)
+                mrv_cell = cell
+    return mrv_cell
+
+
+def least_constraining_values(sudoku_table, val, cell):
+    sum_possible_values = 0
+    for i in range(0, 9):
+        if i == cell.y:
+            continue
+        possible_values = list(sudoku_table[cell.x][i].possible_values)
+        if val in possible_values:
+            sum_possible_values += len(possible_values) - 1
+        else:
+            sum_possible_values += len(possible_values)
+
+    for i in range(0, 9):
+        if i == cell.x:
+            continue
+        possible_values = list(sudoku_table[i][cell.y].possible_values)
+        if val in possible_values:
+            sum_possible_values += len(possible_values) - 1
+        else:
+            sum_possible_values += len(possible_values)
+
+    block_x = (cell.x // 3) * 3
+    block_y = (cell.y // 3) * 3
+    for i in range(block_x, block_x + 3):
+        for j in range(block_y, block_y + 3):
+            if i == cell.x and j == cell.y:
+                continue
+            possible_values = list(sudoku_table[i][j].possible_values)
+            if val in possible_values:
+                sum_possible_values += len(possible_values) - 1
+            else:
+                sum_possible_values += len(possible_values)
+
+    return sum_possible_values
+
+
+solve_by_lcv_mrv(sudoku_table)
 print_table()
